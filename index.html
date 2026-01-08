@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+     <title>PPPPPPPPP</title>
+     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
+     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>  
+
+     <style>
+         body {
+             font-family: Arial;
+             text-align: center;
+             margin-top: 50px;
+         }
+         img {
+             max-width: 300px;
+             margin-top: 20px;
+         }
+     </style>
+</head>  
+
+
+<body>
+<h1>Place the picture</h1>
+<input type="file" accept="image/*" onchange="loadImage(event)">
+<br><br>
+
+<img id="preview">
+<br><br>
+
+<button onclick="predict()"id="btn" disabled>Check</button>
+
+
+<h2 id="result"></h2>
+
+<script>
+     const MODEL_URL = "https://teachablemachine.withgoogle.com/models/pVuW63Nj6/";
+
+     let model;
+     const image = document.getElementById("preview");
+     const button = document.getElementById("btn");
+
+     async function init() {
+         model = await tmImage.load(
+             MODEL_URL + "model.json",
+             MODEL_URL + "metadata.json"
+         );
+         console.log("MODEL LOADED");
+         button.disabled = false;
+     }
+     init();
+
+     function loadImage(event) {
+          image.src = window.URL.createObjectURL(event.target.files[0]);
+          
+     }
+     
+  
+      async function predict() {
+           
+
+          const predictions = await model.predict(image);
+
+          let best = predictions.reduce((a, b) =>
+
+             b.probability > a.probability ? b : a
+          );
+          
+          document.getElementById("result").innerHTML =
+             `Result: <b>${best.className}</b><br>
+             Confidence: ${(best.probability * 100).toFixed(2)}%`;
+     }
+</script>
+
+</body>
+</html>
