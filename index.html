@@ -152,6 +152,41 @@
              background:rgba(255,255,255,0.15);
              filter:blur(10px);
          }
+         /* ===== Loading Screen ===== */
+         #loading{
+             position:fixed;
+             top:0;
+             left:0;
+             width:100%;
+             height:100%;
+             background:rgba(255,255,255,0.85);
+             display:none;
+             align-items:center;
+             justify-content:center;
+             z-index:9999;
+         }
+
+         .loading-box{
+             text-align:center;
+             background:#fff;
+             padding:30px 40px;
+             border-radius:16px;
+             box-shadow:0 10px 30px rgba(0,0,0,.15);
+         }
+
+         .spinner{
+             width:50px;
+             height:50px;
+             border:5px solid #e3f2fd;
+             border-top:5px solid #1e88e5;
+             border-radius:50%;
+             animation:spin 1s linear infinite;
+             margin:0 auto 15px;
+         }
+
+         @keyframes spin{
+             100%{ transform:rotate(360deg); }
+}
 
 
 /* มือถือ */
@@ -163,6 +198,14 @@
 
 
 <body>
+    <!-- Loading Overlay -->
+<div id="loading">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <p>🧠 AI กำลังวิเคราะห์...</p>
+  </div>
+</div>
+
 <div class="container">
   <h1>🧠 Skin Checker</h1>
 
@@ -206,69 +249,89 @@
 
 
 <script>
-     function loadImage(event) {
-          const img = document.getElementById("preview");
-          const text = document.getElementById("previewText");
-          img.src = URL.createObjectURL(event.target.files[0]);
-          img.style.display = "block";
-          text.style.display = "none";
-     }
-      async function predict() {
-    const file = document.getElementById("imageInput").files[0];
-    if (!file) {
-        alert("กรุณาเลือกรูป");
-        return;
-    }
+function showLoading(show){
+  document.getElementById("loading").style.display =
+    show ? "flex" : "none";
+}
 
+function loadImage(event) {
+  const img = document.getElementById("preview");
+  const text = document.getElementById("previewText");
+  img.src = URL.createObjectURL(event.target.files[0]);
+  img.style.display = "block";
+  text.style.display = "none";
+}
+
+async function predict() {
+  const fileInput = document.getElementById("imageInput");
+  const btn = document.querySelector(".ai-btn");
+  const file = fileInput.files[0];
+
+  if (!file) {
+    alert("กรุณาเลือกรูป");
+    return;
+  }
+
+  btn.disabled = true;      // 🔒 ล็อกปุ่ม
+  showLoading(true);        // 🔥 แสดงหน้าโหลด
+
+  try {
     const base64 = await toBase64(file);
 
     const response = await fetch(
-        "https://serverless.roboflow.com/my-first-project-jpfoo/1?api_key=9j2JhaUCP9GD3ZUE5yOc",
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: base64   // ⭐ ส่ง base64 ตรง ๆ
-        }
+      "https://serverless.roboflow.com/my-first-project-jpfoo/1?api_key=9j2JhaUCP9GD3ZUE5yOc",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: base64
+      }
     );
 
     const result = await response.json();
-    console.log(result); // ← ใช้ดูผลใน DevTools
+    console.log(result);
 
     const table = document.getElementById("resultTable");
     table.style.display = "table";
     table.innerHTML = `
-        <tr>
-            <th>ประเภท</th>
-            <th>ความน่าจะเป็น (%)</th>
-        </tr>
+      <tr>
+        <th>ประเภท</th>
+        <th>ความน่าจะเป็น (%)</th>
+      </tr>
     `;
 
     if (!result.predictions || result.predictions.length === 0) {
-        const row = table.insertRow();
-        row.insertCell(0).innerText = "ไม่พบผลลัพธ์";
-        row.insertCell(1).innerText = "-";
-        return;
-    }
-
-    result.predictions.forEach(p => {
+      const row = table.insertRow();
+      row.insertCell(0).innerText = "ไม่พบผลลัพธ์";
+      row.insertCell(1).innerText = "-";
+    } else {
+      result.predictions.forEach(p => {
         const row = table.insertRow();
         row.insertCell(0).innerText = p.class;
-        row.insertCell(1).innerText = (p.confidence * 100).toFixed(2);
-    });
+        row.insertCell(1).innerText =
+          (p.confidence * 100).toFixed(2);
+      });
+    }
+
+  } catch (err) {
+    alert("เกิดข้อผิดพลาดในการวิเคราะห์");
+    console.error(err);
+  }
+
+  showLoading(false);   // 🔥 ซ่อนหน้าโหลด
+  btn.disabled = false; // 🔓 ปลดล็อกปุ่ม
 }
 
 function toBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result.split(",")[1]);
-        reader.onerror = error => reject(error);
-    });
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () =>
+      resolve(reader.result.split(",")[1]);
+    reader.onerror = error => reject(error);
+  });
 }
-
 </script>
-
 </body>
 </html>
